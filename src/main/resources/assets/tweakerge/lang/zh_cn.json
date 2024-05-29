@@ -491,8 +491,6 @@
 	"- Right click to reset to defaults":"-右键重置配置",
 	"Advanced Keybind Settings for placementRestrictionModeline":"高级热键绑定设置的位置限制模式",
 
-	// "20200812更新":"这只是一个更新TAG",
-	// 通用设置更新
 	"freeCameraPlayerMovement":"freeCameraPlayer灵魂/身体操作切换",
 	"When enabled, the movement inputs in the Free Camera mode\nwill move the actual client player instead of the camera":"当启用时，在灵魂出窍模式下的移动输入将移动实际的客户端的视角而不是相机\n也就是说，当你开启这个功能时，你操纵的是角色本体",
 	"zoomAdjustMouseSensitivity":"zoomAdjustMouse缩放调整灵敏度",
@@ -505,10 +503,10 @@
 	"The number of game ticks to hold down use":"该功能控制玩家持续使用右键的时间",
 	"periodicHoldUseInterval":"periodicHoldUse右键持续CD",
 	"The number of game ticks between starting to hold down use (right click)":"该功能控制玩家每隔多少刻持续使用右键",
-	// 列表更新
+
 	"creativeExtraItems":"creativeExtra创造额外物品清单",
 	"Extra items that should be appended to the creative inventory.\nCurrently these will appear in the Transportation category.\nIn the future the group per added item will be customizable.":"想要附加到创造模式清单当中的物品\n这些物品将会出现在运输类别当中\n（这大多数都是命令方块什么的\n放在红石里不好吗？——来着ZMDF的吐槽）\n在未来的版本中每个添加项的组都是可自定义的（嗯，这是masa说的）",
-	// 功能开启设置更新
+
 	"tweakCreativeExtraItems":"tweakCreativeExtra创造额外物品",
 	"Adds custom items to item groups.\nSee Lists -> 'creativeExtraItems' to control which items are added to the groups.\nNote: Currently these will be added to the Transportation group\n(because it has the elast items), but in the future\nthe groups will be configurable per added item":"将自定义物品添加到物品库\n查看列表当中的（creativeExtra创造额外物品清单）\n来控制哪些物品将被添加进入物品库\n注意：目前这些物品仅仅会被添加至运输栏\n但是在将来这些物品将可以被任意添加至不同分类。",
 	"tweakFakeSneakPlacement":"tweakFakeSneak伪潜行升级",
@@ -519,26 +517,23 @@
 	"Enables periodically holding use for a configurable amount of time.\nConfigure the interval in Generic -> periodicHoldUseInterval\nand the duration in periodicHoldUseDuration\\n§6Note: You should not use the normal hold use§r\n§6or the periodic use at the same time§r":"启用周期性长按右键\n其持续时间与循环周期在通用设置中调整\n§6注意：你不应该同时使用长按右键与该功能§r",
 	"tweakRenderEdgeChunks":"tweakRenderEdgeChunks边缘区块渲染",
 	"Allows the edge-most client-loaded chunks to render.\nVanilla doesn't allow rendering chunks that don't have\nall the adjacent chunks loaded, meaning that the edge-most chunk\nof the client's loaded won't render in vanilla.\nThis is also very helpful in the Free Camera mode!":"允许渲染最边缘客户端所加载的区块\n原版当中不允许渲染没有加载所有相邻的区块\n这意味着客户端加载的大部分边缘区块不能正常显示\n§6这在灵魂出窍状态下比较有用§r",
-	// 通用设置快捷键更新
+
 	"toggleGrabCursor":"toggleGrabCursor鼠标锁定",
 	"Grabs or ungrabs the mouse cursor, depending on the current state":"抓取或取消抓取光标，当然这取决于当前状态\n（ZMDF：我愿称之为——挂机神器！）",
-	
-	// "20200920更新":"这只是一个更新TAG",
-	// 通用设置更新
+
 	"freeCameraPlayerInputs":"freeCameraPlayer灵魂出窍鼠标操作",
 	"When enabled, the attacks and use actions\n(ie. left and right clicks) in Free Camera mode are\nlet through to the actual player.":"当启用时，在灵魂出窍的状态下鼠标动作是以玩家为主体进行的",
 	"slotSyncWorkaroundAlways":"slotSync同步解决方案",
 	"Enables the slot sync workaround at all times when the use key\nis held, not only when using fast right click or fast block placement.\nThis is mainly for other mods that may quickly use items when\nholding down use, such as Litematica's Easy Place mode.":"在启用同步解决方案后，当玩家使用快速放置和右键连点器\n该功能将和其他快速使用mod兼容，\n比如投影的简单放置",
-	// 功能开启设置更新
+
 	"tweakSneak_1.15.2":"tweakSneak1.15.2潜行恢复",
 	"Restores the 1.15.2 sneaking behavior":"恢复了1.15.2的潜行行为",
-	// 通用设置快捷键更新
+
 	"freeCameraPlayerInputs":"freeCamera灵魂出窍鼠标操作",
 	"Toggle the Generic -> freeCameraPlayerInputs option":"用于切换通用设置中“freeCameraPlayerInputs”的状态",
 	"swapElytraChestplate":"swapElytra快速换装",
 	"Swaps the currently equipped item in the chest slot between an Elytra and a Chest Plate":"在胸部槽位的鞘翅和胸甲之间交换当前装备的物品",
-	
-	// "20210227更新":"这只是一个更新TAG1.16.4",
+
 	"handRestockPreThreshold":"handRestock自动补货阈值",
 	"The stack size threshold at which Hand Restock will happen\nin the pre-restock mode":"在自动补货模式下的补货阈值",
 	"disableAxeStripping":"Axe禁用去皮操作",
@@ -547,9 +542,7 @@
 	"Disables the nausea visual effects":"禁用恶心所导致的视觉效果",
 	"disableWorldViewBob":"WorldView禁用世界摇晃",
 	"Disables the view bob wobble effect of the world, but not the hand":"禁用移动时世界摇晃的摆动效果，\n但是不禁用手部摇晃",
-	
-	
-	// "20210227更新":"这只是一个更新TAG-1.17",
+
 	"disableArmorStandRendering":"Armor禁用盔甲架渲染",
 	"Disabled all Armor Stand entity rendering":"禁用了所有盔甲架实体的渲染",
 	"tweakHangableEntityBypass":"HangableEntity忽略悬挂实体",
@@ -563,5 +556,5 @@
 	
 	
 	
-	"tweakeroo.gui.title.configs": "Tweakeroo 配置界面 汉化醉梦巅峰（ZMDF）-20210227"
+	"tweakeroo.gui.title.configs": "%s 配置 - %s"
 }
