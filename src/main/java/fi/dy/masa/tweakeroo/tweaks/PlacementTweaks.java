@@ -225,7 +225,7 @@ public class PlacementTweaks
         {
             ClientPlayerEntity player = mc.player;
             World world = player.getEntityWorld();
-            final double reach = mc.interactionManager.getReachDistance();
+            final double reach = mc.player.getBlockInteractionRange();
             final int maxCount = Configs.Generic.FAST_BLOCK_PLACEMENT_COUNT.getIntegerValue();
 
             mc.crosshairTarget = player.raycast(reach, mc.getTickDelta(), false);
@@ -893,13 +893,13 @@ public class PlacementTweaks
         float yaw = facing.asRotation();
         float pitch = player.getPitch();
         player.setYaw(yaw);
-        player.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, player.isOnGround()));
+        player.networkHandler.send(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, player.isOnGround()));
 
         //System.out.printf("handleFlexibleBlockPlacement() pos: %s, side: %s, facing orig: %s facing new: %s\n", pos, side, facingOrig, facing);
         ActionResult result = processRightClickBlockWrapper(controller, player, world, pos, side, hitVec, hand);
 
         player.setYaw(yawOrig);
-        player.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yawOrig, pitch, player.isOnGround()));
+        player.networkHandler.send(new PlayerMoveC2SPacket.LookAndOnGround(yawOrig, pitch, player.isOnGround()));
 
         return result;
     }

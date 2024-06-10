@@ -1,19 +1,18 @@
 package org.thinkingstudio.tweakerge;
 
-import fi.dy.masa.malilib.event.InitializationHandler;
-import fi.dy.masa.tweakeroo.InitHandler;
 import fi.dy.masa.tweakeroo.Reference;
+import fi.dy.masa.tweakeroo.Tweakeroo;
 import fi.dy.masa.tweakeroo.gui.GuiConfigs;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLLoader;
 import org.thinkingstudio.mafglib.util.ForgePlatformUtils;
 
-@Mod(Reference.MOD_ID)
+@Mod(value = Reference.MOD_ID, dist = Dist.CLIENT)
 public class Tweakerge {
     public Tweakerge() {
         if (FMLLoader.getDist().isClient()) {
-            ForgePlatformUtils.getInstance().getClientModIgnoredServerOnly();
-            InitializationHandler.getInstance().registerInitializationHandler(new InitHandler());
+            Tweakeroo.onInitialize();
             ForgePlatformUtils.getInstance().registerModConfigScreen(Reference.MOD_ID, (screen) -> {
                 GuiConfigs gui = new GuiConfigs();
                 gui.setParent(screen);
