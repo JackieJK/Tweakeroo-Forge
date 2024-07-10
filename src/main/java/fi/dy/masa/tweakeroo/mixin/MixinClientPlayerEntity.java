@@ -1,48 +1,53 @@
 package fi.dy.masa.tweakeroo.mixin;
 
-import com.mojang.authlib.GameProfile;
+import net.minecraft.entity.data.TrackedData;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
+import com.mojang.authlib.GameProfile;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.util.Hand;
-
 import fi.dy.masa.tweakeroo.config.Configs;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import fi.dy.masa.tweakeroo.util.CameraEntity;
 import fi.dy.masa.tweakeroo.util.CameraUtils;
 import fi.dy.masa.tweakeroo.util.DummyMovementInput;
+import fi.dy.masa.tweakeroo.util.InventoryUtils;
 
 @Mixin(ClientPlayerEntity.class)
 public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
 {
     @Shadow public Input input;
     @Shadow protected int ticksLeftToDoubleTapSprint;
-
     @Shadow public float prevNauseaIntensity;
     @Shadow public float nauseaIntensity;
-    private final DummyMovementInput dummyMovementInput = new DummyMovementInput(null);
-    private Input realInput;
-    private float realNauseaIntensity;
+    @Shadow private boolean falling;
+    @Unique private final DummyMovementInput dummyMovementInput = new DummyMovementInput(null);
+    @Unique private Input realInput;
+    @Unique private float realNauseaIntensity;
+    @Unique private ItemStack autoSwitchElytraChestplate = ItemStack.EMPTY;
 
     private MixinClientPlayerEntity(ClientWorld world, GameProfile profile)
     {
         super(world, profile);
     }
 
-    @Redirect(method = "updateNausea()V",
+    @Redirect(method = "tickNausea",
               at = @At(value = "INVOKE",
                        target = "Lnet/minecraft/client/gui/screen/Screen;shouldPause()Z"))
     private boolean onDoesGuiPauseGame(Screen gui)
@@ -56,7 +61,7 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
         return gui.shouldPause();
     }
 
-    @Inject(method = "updateNausea", at = @At("HEAD"))
+    @Inject(method = "tickNausea", at = @At("HEAD"))
     private void disableNauseaEffectPre(CallbackInfo ci)
     {
         if (Configs.Disable.DISABLE_NAUSEA_EFFECT.getBooleanValue())
@@ -65,8 +70,7 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
         }
     }
 
-    @Inject(method = "updateNausea", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/network/ClientPlayerEntity;tickPortalCooldown()V"))
+    @Inject(method = "tickNausea", at = @At(value = "TAIL"))
     private void disableNauseaEffectPost(CallbackInfo ci)
     {
         if (Configs.Disable.DISABLE_NAUSEA_EFFECT.getBooleanValue())
@@ -115,6 +119,70 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
         if (Configs.Disable.DISABLE_DOUBLE_TAP_SPRINT.getBooleanValue())
         {
             this.ticksLeftToDoubleTapSprint = 0;
+        }
+    }
+
+    @Inject(method = "tickMovement",
+            at = @At(value = "INVOKE", shift = At.Shift.BEFORE,
+            target = "Lnet/minecraft/client/network/ClientPlayerEntity;getEquippedStack(Lnet/minecraft/entity/EquipmentSlot;)Lnet/minecraft/item/ItemStack;"))
+    private void onFallFlyingCheckChestSlot(CallbackInfo ci)
+    {
+        if (FeatureToggle.TWEAK_AUTO_SWITCH_ELYTRA.getBooleanValue())
+        {
+            // Sakura's version calculating fall distance...
+            //if ((!this.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.ELYTRA) && this.fallDistance > 20.0f)
+
+            // Auto switch if it is not elytra after falling, or is totally broken.
+            // This also shouldn't activate on the Ground if the Chest Equipment is EMPTY,
+            // or not an Elytra to be swapped back.
+            //
+            // !isOnGround(): Minecraft also check elytra even if the player is on the ground, skip it.
+            if (!this.isOnGround()
+                && (!this.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.ELYTRA))
+                || (this.getEquippedStack(EquipmentSlot.CHEST).getDamage() > this.getEquippedStack(EquipmentSlot.CHEST).getMaxDamage() - 10)
+                && (!this.getEquippedStack(EquipmentSlot.CHEST).isEmpty() || this.autoSwitchElytraChestplate.isOf(Items.ELYTRA)))
+            {
+                this.autoSwitchElytraChestplate = this.getEquippedStack(EquipmentSlot.CHEST).copy();
+                InventoryUtils.swapElytraWithChestPlate(this);
+            }
+        }
+        else
+        {
+            // reset auto switch item if the feature is disabled.
+            this.autoSwitchElytraChestplate = ItemStack.EMPTY;
+        }
+    }
+
+
+    @Inject(method = "onTrackedDataSet", at = @At("RETURN"))
+    private void onStopFlying(TrackedData<?> data, CallbackInfo ci)
+    {
+        if (FeatureToggle.TWEAK_AUTO_SWITCH_ELYTRA.getBooleanValue())
+        {
+            if (FLAGS.equals(data) && this.falling)
+            {
+                if (!this.isFallFlying() && this.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.ELYTRA))
+                {
+                    if (!this.autoSwitchElytraChestplate.isEmpty() && !this.autoSwitchElytraChestplate.isOf(Items.ELYTRA))
+                    {
+                        if (this.playerScreenHandler.getCursorStack().isEmpty())
+                        {
+                            int targetSlot = InventoryUtils.findSlotWithItem(this.playerScreenHandler, this.autoSwitchElytraChestplate, true, false);
+
+                            if (targetSlot >= 0)
+                            {
+                                InventoryUtils.swapItemToEquipmentSlot(this, EquipmentSlot.CHEST, targetSlot);
+                                this.autoSwitchElytraChestplate = ItemStack.EMPTY;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // if cached previous item is empty, try to swap back to the default chest plate.
+                        InventoryUtils.swapElytraWithChestPlate(this);
+                    }
+                }
+            }
         }
     }
 

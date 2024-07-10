@@ -1,4 +1,6 @@
 {
+	"fml.menu.mods.info.description.tweakerge": "Tweakeroo 非官方 (Neo)Forge 移植。\n添加了大量可配置的客户端调整。",
+
     "tweakeroo.gui.button.config_gui.disable_hotkeys": "禁用类功能快捷键",
     "tweakeroo.gui.button.config_gui.disable_toggle": "禁用类功能",
     "tweakeroo.gui.button.config_gui.disables": "禁用类功能",

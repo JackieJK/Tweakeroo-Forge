@@ -32,6 +32,8 @@ public abstract class MixinClientPlayerInteractionManager
 {
     @Shadow @Final private MinecraftClient client;
 
+    @Shadow private int blockBreakingCooldown;
+
     @Inject(method = "interactItem", at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;syncSelectedSlot()V"),
@@ -46,19 +48,14 @@ public abstract class MixinClientPlayerInteractionManager
         }
     }
 
-    @Inject(method = "method_41929",
-            slice = @Slice(from = @At(value = "INVOKE",
-                                      target = "Lnet/minecraft/item/ItemStack;use(" +
-                                               "Lnet/minecraft/world/World;" +
-                                               "Lnet/minecraft/entity/player/PlayerEntity;" +
-                                               "Lnet/minecraft/util/Hand;" +
-                                               ")Lnet/minecraft/util/TypedActionResult;")),
-            at = @At("RETURN"))
-    private void onProcessRightClickPost(Hand hand, PlayerEntity playerEntity,
-                                         MutableObject<?> mutableObject, int sequence,
-                                         CallbackInfoReturnable<Packet<?>> cir)
+    @Inject(method = "interactItem",
+            at = @At("TAIL"))
+    private void onProcessRightClickPost(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir)
     {
-        PlacementTweaks.onProcessRightClickPost(playerEntity, hand);
+        if (cir.getReturnValue().isAccepted())
+        {
+            PlacementTweaks.onProcessRightClickPost(player, hand);
+        }
     }
 
     @Inject(method = "interactEntity(" +
@@ -148,6 +145,11 @@ public abstract class MixinClientPlayerInteractionManager
     @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"), cancellable = true) // MCP: onPlayerDamageBlock
     private void handleBreakingRestriction2(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir)
     {
+        if (FeatureToggle.TWEAK_NO_BLOCK_BREAK_CD.getBooleanValue())
+        {
+            this.blockBreakingCooldown = 0;
+        }
+
         if (CameraUtils.shouldPreventPlayerInputs() ||
             PlacementTweaks.isPositionAllowedByBreakingRestriction(pos, side) == false)
         {

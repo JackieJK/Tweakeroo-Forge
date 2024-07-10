@@ -1,25 +1,30 @@
 package fi.dy.masa.tweakeroo.renderer;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import java.util.Set;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
-
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockEntityProvider;
+import net.minecraft.block.CrafterBlock;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.render.Camera;
-import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.component.type.ItemEnchantmentsComponent;
+import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.AbstractHorseEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
@@ -27,10 +32,11 @@ import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-
 import fi.dy.masa.malilib.util.EntityUtils;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.tweakeroo.config.Configs;
+import fi.dy.masa.tweakeroo.config.FeatureToggle;
+import fi.dy.masa.tweakeroo.data.ServerDataSyncer;
 import fi.dy.masa.tweakeroo.mixin.IMixinAbstractHorseEntity;
 import fi.dy.masa.tweakeroo.util.MiscUtils;
 import fi.dy.masa.tweakeroo.util.RayTraceUtils;
@@ -42,9 +48,13 @@ public class RenderUtils
 
     public static void renderHotbarSwapOverlay(MinecraftClient mc, DrawContext drawContext)
     {
+        if (mc.player == null)
+        {
+            return;
+        }
         PlayerEntity player = mc.player;
 
-        if (player != null && mc.currentScreen == null)
+        if (mc.currentScreen == null)
         {
             final int scaledWidth = GuiUtils.getScaledWindowWidth();
             final int scaledHeight = GuiUtils.getScaledWindowHeight();
@@ -115,6 +125,11 @@ public class RenderUtils
         World world = fi.dy.masa.malilib.util.WorldUtils.getBestWorld(mc);
         Entity cameraEntity = EntityUtils.getCameraEntity();
 
+        if (mc.player == null)
+        {
+            return;
+        }
+
         if (cameraEntity == mc.player && world instanceof ServerWorld)
         {
             // We need to get the player from the server world (if available, ie. in single player),
@@ -129,13 +144,9 @@ public class RenderUtils
 
         HitResult trace = RayTraceUtils.getRayTraceFromEntity(world, cameraEntity, false);
 
-        if (trace == null)
-        {
-            return;
-        }
-
         Inventory inv = null;
-        ShulkerBoxBlock block = null;
+        ShulkerBoxBlock shulkerBoxBlock = null;
+        CrafterBlock crafterBlock = null;
         LivingEntity entityLivingBase = null;
 
         if (trace.getType() == HitResult.Type.BLOCK)
@@ -145,14 +156,30 @@ public class RenderUtils
 
             if (blockTmp instanceof ShulkerBoxBlock)
             {
-                block = (ShulkerBoxBlock) blockTmp;
+                shulkerBoxBlock = (ShulkerBoxBlock) blockTmp;
             }
 
             inv = fi.dy.masa.malilib.util.InventoryUtils.getInventory(world, pos);
+
+            if (world.isClient && world.getBlockState(pos).getBlock() instanceof BlockEntityProvider
+                && FeatureToggle.TWEAK_SERVER_DATA_SYNC.getBooleanValue())
+            {
+                inv = ServerDataSyncer.getInstance().getBlockInventory(world, pos);
+            }
         }
         else if (trace.getType() == HitResult.Type.ENTITY)
         {
             Entity entity = ((EntityHitResult) trace).getEntity();
+
+            if (entity.getWorld().isClient &&
+                FeatureToggle.TWEAK_SERVER_DATA_SYNC.getBooleanValue())
+            {
+                Entity serverEntity = ServerDataSyncer.getInstance().getServerEntity(entity);
+                if (serverEntity != null)
+                {
+                    entity = serverEntity;
+                }
+            }
 
             if (entity instanceof LivingEntity)
             {
@@ -203,7 +230,7 @@ public class RenderUtils
                 yInv = Math.min(yInv, yCenter - 92);
             }
 
-            fi.dy.masa.malilib.render.RenderUtils.setShulkerboxBackgroundTintColor(block, Configs.Generic.SHULKER_DISPLAY_BACKGROUND_COLOR.getBooleanValue());
+            fi.dy.masa.malilib.render.RenderUtils.setShulkerboxBackgroundTintColor(shulkerBoxBlock, Configs.Generic.SHULKER_DISPLAY_BACKGROUND_COLOR.getBooleanValue());
 
             if (isHorse)
             {
@@ -228,6 +255,13 @@ public class RenderUtils
 
     public static void renderPlayerInventoryOverlay(MinecraftClient mc, DrawContext drawContext)
     {
+        if (mc.player == null)
+        {
+            return;
+        }
+
+        Inventory inv = mc.player.getInventory();
+
         int x = GuiUtils.getScaledWindowWidth() / 2 - 176 / 2;
         int y = GuiUtils.getScaledWindowHeight() / 2 + 10;
         int slotOffsetX = 8;
@@ -237,12 +271,18 @@ public class RenderUtils
         fi.dy.masa.malilib.render.RenderUtils.color(1f, 1f, 1f, 1f);
 
         fi.dy.masa.malilib.render.InventoryOverlay.renderInventoryBackground(type, x, y, 9, 27, mc);
-        fi.dy.masa.malilib.render.InventoryOverlay.renderInventoryStacks(type, mc.player.getInventory(), x + slotOffsetX, y + slotOffsetY, 9, 9, 27, mc, drawContext);
+        fi.dy.masa.malilib.render.InventoryOverlay.renderInventoryStacks(type, inv, x + slotOffsetX, y + slotOffsetY, 9, 9, 27, mc, drawContext);
     }
 
     public static void renderHotbarScrollOverlay(MinecraftClient mc, DrawContext drawContext)
     {
+        if (mc.player == null)
+        {
+            return;
+        }
+
         Inventory inv = mc.player.getInventory();
+
         final int xCenter = GuiUtils.getScaledWindowWidth() / 2;
         final int yCenter = GuiUtils.getScaledWindowHeight() / 2;
         final int x = xCenter - 176 / 2;
@@ -267,21 +307,46 @@ public class RenderUtils
     {
         if (entity instanceof LivingEntity living)
         {
-            final int resp = EnchantmentHelper.getRespiration(living);
-            final int aqua = EnchantmentHelper.getEquipmentLevel(Enchantments.AQUA_AFFINITY, living);
-            float fog = (originalFog > 1.0f) ? 3.3f : 1.3f;
+            ItemStack head = living.getEquippedStack(EquipmentSlot.HEAD);
 
-            if (aqua > 0)
+            if (head.isEmpty() == false)
             {
-                fog *= 1.6f;
-            }
+                ItemEnchantmentsComponent enchants = head.getEnchantments();
+                float fog = (originalFog > 1.0f) ? 3.3f : 1.3f;
+                int resp = 0;
+                int aqua = 0;
 
-            if (resp > 0)
-            {
-                fog *= (float) resp * 1.6f;
-            }
+                if (enchants.equals(ItemEnchantmentsComponent.DEFAULT) == false)
+                {
+                    Set<RegistryEntry<Enchantment>> enchantList = enchants.getEnchantments();
 
-            return Math.max(fog, originalFog);
+                    for (RegistryEntry<Enchantment> entry : enchantList)
+                    {
+                        if (entry.matchesKey(Enchantments.AQUA_AFFINITY))
+                        {
+                            aqua = enchants.getLevel(entry);
+                        }
+                        if (entry.matchesKey(Enchantments.RESPIRATION))
+                        {
+                            resp = enchants.getLevel(entry);
+                        }
+                    }
+                }
+
+                if (aqua > 0)
+                {
+                    fog *= 1.6f;
+                }
+
+                if (resp > 0)
+                {
+                    fog *= (float) resp * 1.6f;
+                }
+
+                //Tweakeroo.logger.info("getLavaFogDistance: aqua {} resp {} orig: {} adjusted {}", aqua, resp, originalFog, fog);
+
+                return Math.max(fog, originalFog);
+            }
         }
 
         return originalFog;
