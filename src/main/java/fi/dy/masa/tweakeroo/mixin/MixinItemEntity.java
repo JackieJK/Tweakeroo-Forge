@@ -37,61 +37,61 @@ public abstract class MixinItemEntity extends Entity implements IEntityItem
         return this.pickupDelay;
     }
 
-    @Inject(method = "canMerge()Z", at = @At("HEAD"), cancellable = true)
-    private void allowStackingEmptyShulkerBoxes(CallbackInfoReturnable<Boolean> cir)
-    {
-        if (FeatureToggle.TWEAK_SHULKERBOX_STACK_GROUND.getBooleanValue())
-        {
-            ItemStack stack = this.getStack();
+//    @Inject(method = "canMerge()Z", at = @At("HEAD"), cancellable = true)
+//    private void allowStackingEmptyShulkerBoxes(CallbackInfoReturnable<Boolean> cir)
+//    {
+//        if (FeatureToggle.TWEAK_SHULKERBOX_STACK_GROUND.getBooleanValue())
+//        {
+//            ItemStack stack = this.getStack();
+//
+//            if (stack.getItem() instanceof BlockItem && ((BlockItem) stack.getItem()).getBlock() instanceof ShulkerBoxBlock)
+//            {
+//                boolean canMerge = this.isAlive()
+//                                    && this.pickupDelay != 32767
+//                                    && this.itemAge != -32768
+//                                    && this.itemAge < 6000
+//                                    && stack.getCount() < 64;
+//
+//                cir.setReturnValue(canMerge);
+//            }
+//        }
+//    }
 
-            if (stack.getItem() instanceof BlockItem && ((BlockItem) stack.getItem()).getBlock() instanceof ShulkerBoxBlock)
-            {
-                boolean canMerge = this.isAlive()
-                                    && this.pickupDelay != 32767
-                                    && this.itemAge != -32768
-                                    && this.itemAge < 6000
-                                    && stack.getCount() < 64;
-
-                cir.setReturnValue(canMerge);
-            }
-        }
-    }
-
-    @Inject(method = "tryMerge(Lnet/minecraft/entity/ItemEntity;)V", at = @At("HEAD"), cancellable = true)
-    private void stackEmptyShulkerBoxes(ItemEntity other, CallbackInfo ci)
-    {
-        if (FeatureToggle.TWEAK_SHULKERBOX_STACK_GROUND.getBooleanValue())
-        {
-            ItemEntity self = (ItemEntity) (Object) this;
-            ItemStack stackSelf = self.getStack();
-            ItemStack stackOther = other.getStack();
-
-            if (stackSelf.getItem() instanceof BlockItem && ((BlockItem) stackSelf.getItem()).getBlock() instanceof ShulkerBoxBlock &&
-                stackSelf.getItem() == stackOther.getItem() &&
-                fi.dy.masa.malilib.util.InventoryUtils.shulkerBoxHasItems(stackSelf) == false &&
-                // Only stack up to 64, and don't steal from other stacks that are larger
-                stackSelf.getCount() < 64 && stackSelf.getCount() >= stackOther.getCount() &&
-                ItemStack.areItemsAndComponentsEqual(stackSelf, stackOther))
-            {
-                int amount = Math.min(stackOther.getCount(), 64 - stackSelf.getCount());
-
-                stackSelf.increment(amount);
-                self.setStack(stackSelf);
-                this.pickupDelay = Math.max(((IEntityItem) other).getPickupDelay(), this.pickupDelay);
-                this.itemAge = Math.min(other.getItemAge(), this.itemAge);
-
-                if (amount >= stackOther.getCount())
-                {
-                    other.discard();
-                }
-                else
-                {
-                    stackOther.decrement(amount);
-                    other.setStack(stackOther);
-                }
-
-                ci.cancel();
-            }
-        }
-    }
+//    @Inject(method = "tryMerge(Lnet/minecraft/entity/ItemEntity;)V", at = @At("HEAD"), cancellable = true)
+//    private void stackEmptyShulkerBoxes(ItemEntity other, CallbackInfo ci)
+//    {
+//        if (FeatureToggle.TWEAK_SHULKERBOX_STACK_GROUND.getBooleanValue())
+//        {
+//            ItemEntity self = (ItemEntity) (Object) this;
+//            ItemStack stackSelf = self.getStack();
+//            ItemStack stackOther = other.getStack();
+//
+//            if (stackSelf.getItem() instanceof BlockItem && ((BlockItem) stackSelf.getItem()).getBlock() instanceof ShulkerBoxBlock &&
+//                stackSelf.getItem() == stackOther.getItem() &&
+//                fi.dy.masa.malilib.util.InventoryUtils.shulkerBoxHasItems(stackSelf) == false &&
+//                // Only stack up to 64, and don't steal from other stacks that are larger
+//                stackSelf.getCount() < 64 && stackSelf.getCount() >= stackOther.getCount() &&
+//                ItemStack.areItemsAndComponentsEqual(stackSelf, stackOther))
+//            {
+//                int amount = Math.min(stackOther.getCount(), 64 - stackSelf.getCount());
+//
+//                stackSelf.increment(amount);
+//                self.setStack(stackSelf);
+//                this.pickupDelay = Math.max(((IEntityItem) other).getPickupDelay(), this.pickupDelay);
+//                this.itemAge = Math.min(other.getItemAge(), this.itemAge);
+//
+//                if (amount >= stackOther.getCount())
+//                {
+//                    other.discard();
+//                }
+//                else
+//                {
+//                    stackOther.decrement(amount);
+//                    other.setStack(stackOther);
+//                }
+//
+//                ci.cancel();
+//            }
+//        }
+//    }
 }
