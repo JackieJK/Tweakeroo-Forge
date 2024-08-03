@@ -15,7 +15,7 @@ public class Tweakerge {
         if (FMLLoader.getDist().isClient()) {
             Tweakeroo.onInitialize();
 
-            NeoUtils.getInstance().registerModConfigScreen(modContainer, (screen) -> {
+            NeoUtils.getInstance().registerConfigScreen(modContainer, (screen) -> {
                 GuiConfigs gui = new GuiConfigs();
                 gui.setParent(screen);
                 return gui;
