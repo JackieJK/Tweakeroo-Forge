@@ -1,16 +1,13 @@
 package fi.dy.masa.tweakeroo.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.annotation.Nullable;
-
+import fi.dy.masa.malilib.gui.Message;
+import fi.dy.masa.malilib.util.Constants;
+import fi.dy.masa.malilib.util.GuiUtils;
+import fi.dy.masa.malilib.util.InfoUtils;
+import fi.dy.masa.tweakeroo.Tweakeroo;
+import fi.dy.masa.tweakeroo.config.Configs;
+import fi.dy.masa.tweakeroo.config.FeatureToggle;
+import fi.dy.masa.tweakeroo.tweaks.PlacementTweaks;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -18,6 +15,7 @@ import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ArmorItem;
@@ -44,14 +42,16 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.world.World;
 
-import fi.dy.masa.malilib.gui.Message;
-import fi.dy.masa.malilib.util.Constants;
-import fi.dy.masa.malilib.util.GuiUtils;
-import fi.dy.masa.malilib.util.InfoUtils;
-import fi.dy.masa.tweakeroo.Tweakeroo;
-import fi.dy.masa.tweakeroo.config.Configs;
-import fi.dy.masa.tweakeroo.config.FeatureToggle;
-import fi.dy.masa.tweakeroo.tweaks.PlacementTweaks;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class InventoryUtils
 {
@@ -821,7 +821,7 @@ public class InventoryUtils
     }
 
 
-    private static void swapItemToEquipmentSlot(PlayerEntity player, EquipmentSlot type, int sourceSlotNumber)
+    public static void swapItemToEquipmentSlot(PlayerEntity player, EquipmentSlot type, int sourceSlotNumber)
     {
         if (sourceSlotNumber != -1 && player.currentScreenHandler == player.playerScreenHandler)
         {
@@ -1153,4 +1153,107 @@ public class InventoryUtils
 
         return changed;
     }
+
+    public static void equipBestElytra(PlayerEntity player)
+    {
+        if (player == null || GuiUtils.getCurrentScreen() != null)
+        {
+            return;
+        }
+
+        ScreenHandler container = player.currentScreenHandler;
+
+        Predicate<ItemStack> filter = (s) ->  s.getItem() instanceof ElytraItem && ElytraItem.isUsable(s) && s.getDamage() < s.getMaxDamage() - 10;
+        int targetSlot = findSlotWithBestItemMatch(container, (testedStack, previousBestMatch) -> {
+            if (!filter.test(testedStack)) return false;
+            if (!filter.test(previousBestMatch)) return true;
+//            if (getEnchantmentLevel(testedStack, Enchantments.UNBREAKING) > getEnchantmentLevel(previousBestMatch, Enchantments.UNBREAKING))
+//            {
+//                return true;
+//            }
+//            if (getEnchantmentLevel(testedStack, Enchantments.UNBREAKING) < getEnchantmentLevel(previousBestMatch, Enchantments.UNBREAKING))
+//            {
+//                return false;
+//            }
+            return testedStack.getDamage() <= previousBestMatch.getDamage();
+        }, UniformIntProvider.create(9, container.slots.size() - 1));
+
+        if (targetSlot >= 0)
+        {
+            swapItemToEquipmentSlot(player, EquipmentSlot.CHEST, targetSlot);
+        }
+    }
+
+    public static void swapElytraAndChestPlate(@Nullable PlayerEntity player)
+    {
+        if (player == null || GuiUtils.getCurrentScreen() != null)
+        {
+            return;
+        }
+
+        ScreenHandler container = player.currentScreenHandler;
+        ItemStack currentStack = player.getEquippedStack(EquipmentSlot.CHEST);
+
+        Predicate<ItemStack> stackFilterChestPlate = (s) -> s.getItem() instanceof ArmorItem && ((ArmorItem) s.getItem()).getSlotType() == EquipmentSlot.CHEST;
+
+        if (currentStack.isEmpty() || stackFilterChestPlate.test(currentStack))
+        {
+            equipBestElytra(player);
+        }
+        else
+        {
+            Predicate<ItemStack> finalFilter = (s) -> stackFilterChestPlate.test(s) && s.getDamage() < s.getMaxDamage() - 10;
+
+            int targetSlot = findSlotWithBestItemMatch(container, (testedStack, previousBestMatch) -> {
+                if (!finalFilter.test(testedStack)) return false;
+                if (!finalFilter.test(previousBestMatch)) return true;
+//                if (getArmorAndArmorToughnessValue(previousBestMatch, 1, AttributeModifierSlot.CHEST) < getArmorAndArmorToughnessValue(testedStack, 1, AttributeModifierSlot.CHEST))
+//                {
+//                    return true;
+//                }
+//                if (getArmorAndArmorToughnessValue(previousBestMatch, 1, AttributeModifierSlot.CHEST) > getArmorAndArmorToughnessValue(testedStack, 1, AttributeModifierSlot.CHEST))
+//                {
+//                    return false;
+//                }
+//                return getEnchantmentLevel(previousBestMatch, Enchantments.PROTECTION) <= getEnchantmentLevel(testedStack, Enchantments.PROTECTION);
+                return false;
+            }, UniformIntProvider.create(9, container.slots.size() - 1));
+
+            if (targetSlot >= 0)
+            {
+                swapItemToEquipmentSlot(player, EquipmentSlot.CHEST, targetSlot);
+            }
+        }
+    }
+
+//    private static double getArmorAndArmorToughnessValue(ItemStack stack, double base, AttributeModifierSlot slot)
+//    {
+//        final double[] total = {base};
+//
+//
+//        stack.applyAttributeModifier(slot, (entry, modifier) -> {
+//            if (entry.getKey().orElseThrow() == EntityAttributes.GENERIC_ARMOR
+//                    || entry.getKey().orElseThrow() == EntityAttributes.GENERIC_ARMOR_TOUGHNESS)
+//            {
+//                switch (modifier.operation())
+//                {
+//                    case ADD_VALUE:
+//                        total[0] += modifier.value();
+//                        break;
+//                    case ADD_MULTIPLIED_BASE:
+//                        total[0] += modifier.value() * base;
+//                        break;
+//                    case ADD_MULTIPLIED_TOTAL:
+//                        total[0] += modifier.value() * total[0];
+//                        break;
+//                    default:
+//                        throw new MatchException(null, null);
+//                }
+//            }
+//        });
+//
+//        return total[0];
+//    }
+
+
 }
